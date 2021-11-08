@@ -10,29 +10,29 @@ import (
 	"github.com/yeezc/streams/util/slices"
 )
 
-type defaultStream struct {
+type stream struct {
 	via      Via
 	parallel uint
 }
 
-func (s *defaultStream) Filter(predicate util.Predicate) Stream {
+func (s *stream) Filter(predicate util.Predicate) Stream {
 	via := s.via.Via(flow.NewFilter(flow.FilterFunc(predicate), s.parallel))
-	return &defaultStream{via: via, parallel: s.parallel}
+	return &stream{via: via, parallel: s.parallel}
 }
 
-func (s *defaultStream) Map(function util.Function) Stream {
+func (s *stream) Map(function util.Function) Stream {
 	via := s.via.Via(flow.NewMap(flow.MapFunc(function), s.parallel))
-	return &defaultStream{via: via, parallel: s.parallel}
+	return &stream{via: via, parallel: s.parallel}
 }
 
-func (s *defaultStream) FindAny() util.Optional {
+func (s *stream) FindAny() util.Optional {
 	if elem, ok := <-s.via.Out(); ok {
 		return util.OfNullable(elem)
 	}
 	return util.Empty()
 }
 
-func (s *defaultStream) Distinct() Stream {
+func (s *stream) Distinct() Stream {
 	out := make(chan interface{})
 	go func() {
 		defer close(out)
@@ -44,10 +44,10 @@ func (s *defaultStream) Distinct() Stream {
 			}
 		}
 	}()
-	return &defaultStream{via: ext.NewChanSource(out), parallel: s.parallel}
+	return &stream{via: ext.NewChanSource(out), parallel: s.parallel}
 }
 
-func (s *defaultStream) Sorted(c util.Comparator) Stream {
+func (s *stream) Sorted(c util.Comparator) Stream {
 	out := make(chan interface{})
 	go func() {
 		defer close(out)
@@ -61,28 +61,43 @@ func (s *defaultStream) Sorted(c util.Comparator) Stream {
 			out <- elem
 		}
 	}()
-	return &defaultStream{via: ext.NewChanSource(out), parallel: s.parallel}
+	return &stream{via: ext.NewChanSource(out), parallel: s.parallel}
 }
 
-func (s *defaultStream) Parallel(cnt uint) Stream {
+func (s *stream) Parallel(cnt uint) Stream {
 	s.parallel = cnt
 	return s
 }
 
-func (s *defaultStream) ForEach(consumer util.Consumer) {
+func (s *stream) Reverse() Stream {
+	out := make(chan interface{})
+	go func() {
+		defer close(out)
+		elems := make([]interface{}, 0)
+		for elem := range s.via.Out() {
+			elems = append(elems, elem)
+		}
+		for i := len(elems) - 1; i >= 0; i-- {
+			out <- elems[i]
+		}
+	}()
+	return &stream{via: ext.NewChanSource(out), parallel: s.parallel}
+}
+
+func (s *stream) ForEach(consumer util.Consumer) {
 	for elem := range s.via.Out() {
 		consumer(elem)
 	}
 }
 
-func (s *defaultStream) Reduce(identity interface{}, op util.BinaryOperator) interface{} {
+func (s *stream) Reduce(identity interface{}, op util.BinaryOperator) interface{} {
 	for elem := range s.via.Out() {
 		identity = op(identity, elem)
 	}
 	return identity
 }
 
-func (s *defaultStream) ToArray() interface{} {
+func (s *stream) ToArray() interface{} {
 	var (
 		ret reflect.Value
 		set bool

@@ -23,12 +23,13 @@ type Stream interface {
 	ForEach(consumer util.Consumer)
 	Reduce(identity interface{}, op util.BinaryOperator) interface{}
 	ToArray() interface{}
+	Reverse() Stream
 }
 
 func Empty() Stream {
 	c := make(chan interface{})
 	close(c)
-	return &defaultStream{via: ext.NewChanSource(c), parallel: 1}
+	return &stream{via: ext.NewChanSource(c), parallel: 1}
 }
 
 func Of(i interface{}) Stream {
@@ -44,5 +45,5 @@ func Of(i interface{}) Stream {
 			in <- i
 		}
 	}()
-	return &defaultStream{via: ext.NewChanSource(in), parallel: 1}
+	return &stream{via: ext.NewChanSource(in), parallel: 1}
 }
