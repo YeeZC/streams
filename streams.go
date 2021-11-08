@@ -3,33 +3,32 @@ package streams
 import (
 	"reflect"
 
+	"github.com/reugn/go-streams"
+	ext "github.com/reugn/go-streams/extension"
 	"github.com/yeezc/streams/util"
 )
 
-type T util.T
-type R util.R
-
-type Predicate util.Predicate
-type Function util.Function
-type Comparator util.Comparator
-type BinaryOperator util.BinaryOperator
-type Consumer util.Consumer
+type Via interface {
+	Via(streams.Flow) streams.Flow
+	Out() <-chan interface{}
+}
 
 type Stream interface {
-	Filter(predicate Predicate) Stream
-	Map(function Function) Stream
+	Filter(predicate util.Predicate) Stream
+	Map(function util.Function) Stream
 	FindAny() util.Optional
 	Distinct() Stream
-	Sorted(c Comparator) Stream
-	ForEach(consumer Consumer)
-	Reduce(identity T, op BinaryOperator) R
+	Sorted(c util.Comparator) Stream
+	Parallel(cnt uint) Stream
+	ForEach(consumer util.Consumer)
+	Reduce(identity interface{}, op util.BinaryOperator) interface{}
 	ToArray() interface{}
 }
 
 func Empty() Stream {
 	c := make(chan interface{})
 	close(c)
-	return &defaultStream{in: c}
+	return &defaultStream{via: ext.NewChanSource(c), parallel: 1}
 }
 
 func Of(i interface{}) Stream {
@@ -45,5 +44,5 @@ func Of(i interface{}) Stream {
 			in <- i
 		}
 	}()
-	return &defaultStream{in: in}
+	return &defaultStream{via: ext.NewChanSource(in), parallel: 1}
 }

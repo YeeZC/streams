@@ -1,10 +1,7 @@
 package util
 
-type T interface{}
-type R interface{}
-
-type Predicate func(T) bool
-type Function func(T) R
-type Comparator func(T, T) int
-type BinaryOperator func(T, T) R
-type Consumer func(T)
+type Predicate func(interface{}) bool
+type Function func(interface{}) interface{}
+type Comparator func(interface{}, interface{}) int
+type BinaryOperator func(interface{}, interface{}) interface{}
+type Consumer func(interface{})
