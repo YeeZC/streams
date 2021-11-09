@@ -56,10 +56,3 @@ func Empty() Optional {
 func OfNullable(value interface{}) Optional {
 	return Optional{value: value}
 }
-
-func Of(value interface{}) (Optional, error) {
-	if value == nil {
-		return empty, fmt.Errorf("value cannot be empty")
-	}
-	return Optional{value: value}, nil
-}

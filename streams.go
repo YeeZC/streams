@@ -5,7 +5,7 @@ import (
 
 	"github.com/reugn/go-streams"
 	ext "github.com/reugn/go-streams/extension"
-	"github.com/yeezc/streams/util"
+	. "github.com/yeezc/streams/util"
 )
 
 type Via interface {
@@ -14,19 +14,19 @@ type Via interface {
 }
 
 type Stream interface {
-	Filter(predicate util.Predicate) Stream
-	Map(function util.Function) Stream
-	FindAny() util.Optional
+	Filter(predicate Predicate) Stream
+	Map(function Function) Stream
+	FindAny() Optional
 	Distinct() Stream
-	Sorted(c util.Comparator) Stream
+	Sorted(c Comparator) Stream
 	Parallel(cnt uint) Stream
-	ForEach(consumer util.Consumer)
-	Reduce(identity interface{}, op util.BinaryOperator) interface{}
+	ForEach(consumer Consumer)
+	Reduce(identity interface{}, op BinaryOperator) interface{}
 	ToArray() interface{}
 	Reverse() Stream
 }
 
-func Empty() Stream {
+func EmptyStream() Stream {
 	c := make(chan interface{})
 	close(c)
 	return &stream{via: ext.NewChanSource(c), parallel: 1}

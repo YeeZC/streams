@@ -6,7 +6,7 @@ import (
 
 	ext "github.com/reugn/go-streams/extension"
 	"github.com/reugn/go-streams/flow"
-	"github.com/yeezc/streams/util"
+	. "github.com/yeezc/streams/util"
 	"github.com/yeezc/streams/util/slices"
 )
 
@@ -15,21 +15,21 @@ type stream struct {
 	parallel uint
 }
 
-func (s *stream) Filter(predicate util.Predicate) Stream {
+func (s *stream) Filter(predicate Predicate) Stream {
 	via := s.via.Via(flow.NewFilter(flow.FilterFunc(predicate), s.parallel))
 	return &stream{via: via, parallel: s.parallel}
 }
 
-func (s *stream) Map(function util.Function) Stream {
+func (s *stream) Map(function Function) Stream {
 	via := s.via.Via(flow.NewMap(flow.MapFunc(function), s.parallel))
 	return &stream{via: via, parallel: s.parallel}
 }
 
-func (s *stream) FindAny() util.Optional {
+func (s *stream) FindAny() Optional {
 	if elem, ok := <-s.via.Out(); ok {
-		return util.OfNullable(elem)
+		return OfNullable(elem)
 	}
-	return util.Empty()
+	return Empty()
 }
 
 func (s *stream) Distinct() Stream {
@@ -47,7 +47,7 @@ func (s *stream) Distinct() Stream {
 	return &stream{via: ext.NewChanSource(out), parallel: s.parallel}
 }
 
-func (s *stream) Sorted(c util.Comparator) Stream {
+func (s *stream) Sorted(c Comparator) Stream {
 	out := make(chan interface{})
 	go func() {
 		defer close(out)
@@ -84,13 +84,13 @@ func (s *stream) Reverse() Stream {
 	return &stream{via: ext.NewChanSource(out), parallel: s.parallel}
 }
 
-func (s *stream) ForEach(consumer util.Consumer) {
+func (s *stream) ForEach(consumer Consumer) {
 	for elem := range s.via.Out() {
 		consumer(elem)
 	}
 }
 
-func (s *stream) Reduce(identity interface{}, op util.BinaryOperator) interface{} {
+func (s *stream) Reduce(identity interface{}, op BinaryOperator) interface{} {
 	for elem := range s.via.Out() {
 		identity = op(identity, elem)
 	}
@@ -126,7 +126,7 @@ func (s *stream) ToArray() interface{} {
 }
 
 type comparable struct {
-	comparator util.Comparator
+	comparator Comparator
 	elements   []interface{}
 }
 
