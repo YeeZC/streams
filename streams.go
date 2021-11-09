@@ -5,7 +5,7 @@ import (
 
 	"github.com/reugn/go-streams"
 	ext "github.com/reugn/go-streams/extension"
-	. "github.com/yeezc/streams/util"
+	"github.com/yeezc/streams/util"
 )
 
 type Via interface {
@@ -14,16 +14,18 @@ type Via interface {
 }
 
 type Stream interface {
-	Filter(predicate Predicate) Stream
-	Map(function Function) Stream
-	FindAny() Optional
+	Filter(predicate util.Predicate) Stream
+	Map(function util.Function) Stream
+	MapBreakable(function util.BreakableFunction) Stream
+	FindAny() util.Optional
 	Distinct() Stream
-	Sorted(c Comparator) Stream
+	Sorted(c util.Comparator) Stream
 	Parallel(cnt uint) Stream
-	ForEach(consumer Consumer)
-	Reduce(identity interface{}, op BinaryOperator) interface{}
-	ToArray() interface{}
 	Reverse() Stream
+	ForEach(consumer util.Consumer)
+	ForEachBreakable(function util.BreakableConsumer)
+	Reduce(identity interface{}, op util.BinaryOperator) interface{}
+	ToArray() interface{}
 }
 
 func EmptyStream() Stream {
