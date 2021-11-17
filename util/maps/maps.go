@@ -47,3 +47,20 @@ func Values(i interface{}) []interface{} {
 	}
 	return elems
 }
+
+type Entry struct {
+	key   interface{}
+	value interface{}
+}
+
+func (e *Entry) GetKey() interface{} {
+	return e.key
+}
+
+func (e *Entry) GetValue() interface{} {
+	return e.value
+}
+
+func NewEntry(key, value interface{}) *Entry {
+	return &Entry{key: key, value: value}
+}

@@ -2,10 +2,12 @@ package streams
 
 import (
 	"reflect"
+	"sync"
 
 	"github.com/reugn/go-streams"
 	ext "github.com/reugn/go-streams/extension"
 	"github.com/yeezc/streams/util"
+	"github.com/yeezc/streams/util/maps"
 )
 
 type Via interface {
@@ -39,12 +41,27 @@ func Of(i interface{}) Stream {
 	go func() {
 		defer close(in)
 		v := reflect.ValueOf(i)
-		if v.Kind() == reflect.Array || v.Kind() == reflect.Slice {
+		switch v.Kind() {
+		case reflect.Array, reflect.Slice:
 			for i := 0; i < v.Len(); i++ {
 				in <- v.Index(i).Interface()
 			}
-		} else {
-			in <- i
+		case reflect.Map:
+			it := v.MapRange()
+			for it.Next() {
+				key := it.Key().Interface()
+				value := it.Value().Interface()
+				in <- maps.NewEntry(key, value)
+			}
+		default:
+			if m, ok := i.(sync.Map); ok {
+				m.Range(func(key, value interface{}) bool {
+					in <- maps.NewEntry(key, value)
+					return true
+				})
+			} else {
+				in <- i
+			}
 		}
 	}()
 	return &stream{via: ext.NewChanSource(in), parallel: 1}
