@@ -1,11 +1,14 @@
 package streams
 
 import (
+	"math"
 	"reflect"
 	"sort"
 
 	ext "github.com/reugn/go-streams/extension"
 	"github.com/reugn/go-streams/flow"
+	"github.com/spf13/cast"
+	"github.com/yeezc/streams/collectors"
 	"github.com/yeezc/streams/util"
 	"github.com/yeezc/streams/util/slices"
 )
@@ -121,31 +124,44 @@ func (s *stream) Reduce(identity interface{}, op util.BinaryOperator) interface{
 }
 
 func (s *stream) ToArray() interface{} {
-	var (
-		ret reflect.Value
-		set bool
-	)
-	nilCount := 0
-	for elem := range s.via.Out() {
-		el := reflect.ValueOf(elem)
-		if !set && elem != nil {
-			ret = reflect.MakeSlice(reflect.SliceOf(el.Type()), 0, nilCount)
-			for i := 0; i < nilCount; i++ {
-				reflect.Append(ret, reflect.ValueOf(nil))
-			}
-			ret = reflect.Append(ret, el)
-			nilCount = 0
-			set = true
-		} else if !set && elem == nil {
-			nilCount++
-		} else {
-			ret = reflect.Append(ret, el)
+	return s.Collect(collectors.Of(func() interface{} {
+		return nil
+	}, func(i1, i2 interface{}) interface{} {
+		item := reflect.ValueOf(i2)
+		if i1 == nil && i2 == nil {
+			res := make([]interface{}, 0, 1)
+			res = append(res, nil)
+			return reflect.TypeOf(res)
+		} else if i1 == nil {
+			res := reflect.MakeSlice(reflect.SliceOf(item.Type()), 0, 10)
+			return reflect.Append(res, item)
 		}
+		return reflect.Append(i1.(reflect.Value), item)
+	}, func(i interface{}) interface{} {
+		if v, ok := i.(reflect.Value); ok {
+			return v.Interface()
+		}
+		return nil
+	}))
+}
+
+func (s *stream) Collect(c collectors.Collector) interface{} {
+	res := c.Supplier()()
+	combiner := c.Combiner()
+	for elem := range s.via.Out() {
+		res = combiner(res, elem)
 	}
-	if ret.CanInterface() {
-		return ret.Interface()
-	}
-	return nil
+	return c.Finisher()(res)
+}
+
+func (s *stream) Sum() float64 {
+	return cast.ToFloat64(s.Reduce(float64(0), func(i1, i2 interface{}) interface{} {
+		return i1.(float64) + cast.ToFloat64(i2)
+	}))
+}
+
+func (s *stream) Avg() float64 {
+	return s.Collect(&avg{}).(float64)
 }
 
 type comparable struct {
@@ -165,4 +181,30 @@ func (c *comparable) Swap(i, j int) {
 	tmp := c.elements[i]
 	c.elements[i] = c.elements[j]
 	c.elements[j] = tmp
+}
+
+type avg struct {
+	sum   float64
+	count float64
+}
+
+func (c *avg) Supplier() util.Supplier {
+	return func() interface{} {
+		return nil
+	}
+}
+func (c *avg) Combiner() util.BinaryOperator {
+	return func(i1, i2 interface{}) interface{} {
+		c.count++
+		c.sum += cast.ToFloat64(i2)
+		return nil
+	}
+}
+func (c *avg) Finisher() util.Function {
+	return func(i interface{}) interface{} {
+		if c.count == 0 {
+			return math.NaN()
+		}
+		return c.sum / c.count
+	}
 }

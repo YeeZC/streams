@@ -6,6 +6,7 @@ import (
 
 	"github.com/reugn/go-streams"
 	ext "github.com/reugn/go-streams/extension"
+	"github.com/yeezc/streams/collectors"
 	"github.com/yeezc/streams/util"
 	"github.com/yeezc/streams/util/maps"
 )
@@ -28,6 +29,9 @@ type Stream interface {
 	ForEachBreakable(function util.BreakableConsumer)
 	Reduce(identity interface{}, op util.BinaryOperator) interface{}
 	ToArray() interface{}
+	Collect(collectors.Collector) interface{}
+	Sum() float64
+	Avg() float64
 }
 
 func EmptyStream() Stream {

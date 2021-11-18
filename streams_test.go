@@ -2,7 +2,11 @@ package streams
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
+
+	"github.com/spf13/cast"
+	"github.com/yeezc/streams/collectors"
 )
 
 func TestFilter(t *testing.T) {
@@ -37,4 +41,24 @@ func TestSorted(t *testing.T) {
 	opt.IfPresent(func(t interface{}) {
 		fmt.Println(t)
 	})
+}
+
+func TestCollect(t *testing.T) {
+	opt := Of([]int{1, 2, 3, 3, 6, 6, 7, 8, 9, 10}).Distinct().Filter(func(t interface{}) bool {
+		return t.(int) > 5
+	}).Collect(collectors.ToSlice(reflect.TypeOf(1)))
+	fmt.Printf("%v\n", opt)
+	opt = Of([]int{1, 2, 3, 3, 6, 6, 7, 8, 9, 10}).Distinct().Filter(func(t interface{}) bool {
+		return t.(int) > 5
+	}).Collect(collectors.ToMap(reflect.TypeOf(""), reflect.TypeOf(1), func(i interface{}) interface{} {
+		return cast.ToString(i)
+	}, func(i interface{}) interface{} {
+		return i
+	}))
+	fmt.Printf("%v\n", opt)
+}
+
+func TestToArray(t *testing.T) {
+	opt := Of([]interface{}{nil, 1, 2, 3, 3, 6, 6, 7, 8, 9, 10}).Distinct().ToArray()
+	fmt.Println(opt)
 }
